@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Penjualan — Keripik Bu Sari (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#F3F5F8;--panel:#FFFFFF;--ink:#1B2430;--soft:#5B6676;--line:#E1E5EC;--blue:#2F5BDA;--blue2:#9DB2F0;--green:#1F8A5B;--red:#C2413B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+.demo{background:var(--ink);color:#DDE3EC;font-size:13.5px;text-align:center;padding:7px 16px}
+.demo a{color:#fff;font-weight:600}
+.wrap{max-width:1240px;margin:0 auto;padding:22px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+header p{color:var(--soft)}
+.src{font-size:13px;color:var(--soft)}
+.src b{color:var(--ink)}
+
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+.filters label{display:flex;flex-direction:column;font-size:12.5px;color:var(--soft);gap:4px;font-weight:500}
+select,input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-width:150px}
+button{font:600 14px/1 "IBM Plex Sans",sans-serif;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--blue);color:var(--blue)}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button.primary:hover{background:#2249B8;color:#fff}
+.spacer{flex:1}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.kpi span{display:block;color:var(--soft);font-size:13px}
+.kpi strong{display:block;font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi em{font-style:normal;font-size:13px;font-weight:600}
+.up{color:var(--green)}.down{color:var(--red)}.flat{color:var(--soft)}
+
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.panel h2{font-size:15px;font-weight:600;margin-bottom:10px}
+.chart-box{position:relative;height:280px}
+
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--soft);font-weight:600;font-size:12.5px;background:#FAFBFC;position:sticky;top:0}
+td.n,th.n{text-align:right}
+.table-wrap{max-height:340px;overflow:auto}
+.tbar{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+
+dialog{border:none;border-radius:14px;padding:22px;max-width:520px;width:calc(100% - 32px);color:var(--ink)}
+dialog::backdrop{background:rgba(27,36,48,.45)}
+dialog h3{font-size:19px;margin-bottom:8px}
+dialog ol{padding-left:20px;color:var(--soft);margin:8px 0 14px}
+dialog input{width:100%;margin:6px 0 12px}
+.msg{font-size:13.5px;margin-bottom:10px}
+.msg.err{color:var(--red)}
+
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+@media (max-width:480px){.kpi strong{font-size:21px}select,input{min-width:0;width:100%}.filters label{flex:1 1 140px}}
+</style>
+</head>
+<body>
+<div class="demo">Demo portofolio dengan data fiktif. <a href="../">Kembali ke portofolio</a></div>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Penjualan Keripik Bu Sari</h1>
+      <p>Rekap otomatis dari spreadsheet transaksi harian.</p>
+    </div>
+    <div class="src" id="srcLabel">Sumber data: <b>contoh bawaan</b></div>
+  </header>
+
+  <div class="filters">
+    <label>Dari bulan<select id="fFrom"></select></label>
+    <label>Sampai bulan<select id="fTo"></select></label>
+    <label>Kanal<select id="fChannel"><option value="">Semua kanal</option></select></label>
+    <label>Kategori<select id="fCat"><option value="">Semua kategori</option></select></label>
+    <span class="spacer"></span>
+    <button id="btnSheet">Sambungkan Google Sheets</button>
+    <button class="primary" id="btnExport">Unduh CSV</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>Omzet</span><strong id="kOmzet">–</strong><em id="dOmzet"></em></div>
+    <div class="kpi"><span>Transaksi</span><strong id="kTrx">–</strong><em id="dTrx"></em></div>
+    <div class="kpi"><span>Bungkus terjual</span><strong id="kQty">–</strong><em id="dQty"></em></div>
+    <div class="kpi"><span>Rata-rata per transaksi</span><strong id="kAvg">–</strong><em id="dAvg"></em></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel"><h2>Omzet per bulan</h2><div class="chart-box"><canvas id="cTrend" aria-label="Grafik omzet per bulan"></canvas></div></div>
+    <div class="panel"><h2>Omzet per kanal</h2><div class="chart-box"><canvas id="cChannel" aria-label="Grafik omzet per kanal"></canvas></div></div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <div class="tbar"><h2 style="margin:0">Transaksi</h2><input id="fSearch" type="search" placeholder="Cari produk…" aria-label="Cari produk"></div>
+      <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Produk</th><th>Kanal</th><th class="n">Qty</th><th class="n">Total</th></tr></thead><tbody id="tBody"></tbody></table></div>
+    </div>
+    <div class="panel"><h2>Produk terlaris</h2><div class="chart-box" style="height:340px"><canvas id="cTop" aria-label="Grafik produk terlaris"></canvas></div></div>
+  </div>
+  <p class="src">Perbandingan pada kartu angka dihitung terhadap periode sebelumnya dengan panjang yang sama.</p>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgT">
+  <h3 id="dlgT">Sambungkan Google Sheets</h3>
+  <ol>
+    <li>Di Google Sheets: <b>File → Bagikan → Publikasikan ke web</b>.</li>
+    <li>Pilih sheet transaksi, format <b>CSV</b>, lalu salin link-nya.</li>
+    <li>Kolom yang dibutuhkan: tanggal, produk, kategori, kanal, qty, harga.</li>
+  </ol>
+  <label for="sheetUrl" class="src">Link CSV</label>
+  <input id="sheetUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv">
+  <div class="msg" id="sheetMsg"></div>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button id="btnReset">Pakai data contoh</button>
+    <button id="btnCancel">Batal</button>
+    <button class="primary" id="btnLoad">Muat data</button>
+  </div>
+</dialog>
+
+<script>
+const BULAN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const rp=n=>"Rp"+Math.round(n).toLocaleString("id-ID");
+const num=n=>Math.round(n).toLocaleString("id-ID");
+
+// ---------- sample data (deterministic) ----------
+function sample(){
+  let s=42;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const prods=[["Keripik singkong pedas","Keripik",12000],["Keripik singkong original","Keripik",11000],["Keripik pisang manis","Keripik",13000],["Basreng pedas","Camilan pedas",15000],["Makaroni pedas","Camilan pedas",10000],["Seblak kering","Camilan pedas",14000]];
+  const ch=[["Toko",.45],["Shopee",.35],["WhatsApp",.20]];
+  const out=[];
+  for(let d=new Date(2026,4,1);d<=new Date(2026,9,28);d.setDate(d.getDate()+1)){
+    const growth=1+(d.getMonth()-4)*.12, weekend=[0,6].includes(d.getDay())?1.4:1;
+    const n=Math.round((3+r()*5)*growth*weekend);
+    for(let i=0;i<n;i++){
+      const p=prods[Math.min(prods.length-1,Math.floor(Math.pow(r(),1.4)*prods.length))];
+      let x=r(),c=ch[0][0];for(const [name,w] of ch){if(x<w){c=name;break}x-=w}
+      out.push({tanggal:new Date(d),produk:p[0],kategori:p[1],kanal:c,qty:1+Math.floor(r()*(c==="WhatsApp"?12:5)),harga:p[2]});
+    }
+  }
+  return out;
+}
+
+// ---------- CSV ----------
+function parseCSV(text){
+  const rows=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){if(c=='"'){if(text[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c=='"')q=true;
+    else if(c==","){row.push(f);f=""}
+    else if(c=="\n"||c=="\r"){if(c=="\r"&&text[i+1]=="\n")i++;row.push(f);rows.push(row);row=[];f=""}
+    else f+=c;
+  }
+  if(f||row.length){row.push(f);rows.push(row)}
+  return rows.filter(r=>r.some(v=>v.trim()));
+}
+function parseDate(v){
+  v=v.trim();let m;
+  if(m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return new Date(+m[1],m[2]-1,+m[3]);
+  if(m=v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/))return new Date(+m[3],m[2]-1,+m[1]);
+  const d=new Date(v);return isNaN(d)?null:d;
+}
+function toNumber(v){return Number(String(v).replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",","."))}
+function fromRows(rows){
+  const head=rows[0].map(h=>h.trim().toLowerCase());
+  const need=["tanggal","produk","kategori","kanal","qty","harga"];
+  const miss=need.filter(n=>!head.includes(n));
+  if(miss.length)throw new Error("Kolom tidak ditemukan: "+miss.join(", "));
+  const idx=Object.fromEntries(need.map(n=>[n,head.indexOf(n)]));
+  const out=[];
+  for(const r of rows.slice(1)){
+    const t=parseDate(r[idx.tanggal]||"");if(!t)continue;
+    out.push({tanggal:t,produk:r[idx.produk].trim(),kategori:r[idx.kategori].trim(),kanal:r[idx.kanal].trim(),qty:toNumber(r[idx.qty])||0,harga:toNumber(r[idx.harga])||0});
+  }
+  if(!out.length)throw new Error("Tidak ada baris dengan tanggal yang valid.");
+  return out;
+}
+
+// ---------- state ----------
+let data=sample(), charts={};
+const $=id=>document.getElementById(id);
+const mk=d=>d.getFullYear()*12+d.getMonth();
+const label=k=>BULAN[k%12]+" "+Math.floor(k/12);
+
+function setupFilters(){
+  const months=[...new Set(data.map(d=>mk(d.tanggal)))].sort((a,b)=>a-b);
+  const opts=months.map(m=>`<option value="${m}">${label(m)}</option>`).join("");
+  $("fFrom").innerHTML=opts;$("fTo").innerHTML=opts;
+  $("fFrom").value=months[Math.max(0,months.length-3)];$("fTo").value=months[months.length-1];
+  const uniq=k=>[...new Set(data.map(d=>d[k]))].sort();
+  $("fChannel").innerHTML='<option value="">Semua kanal</option>'+uniq("kanal").map(v=>`<option>${esc(v)}</option>`).join("");
+  $("fCat").innerHTML='<option value="">Semua kategori</option>'+uniq("kategori").map(v=>`<option>${esc(v)}</option>`).join("");
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function filtered(from,to){
+  const ch=$("fChannel").value,cat=$("fCat").value;
+  return data.filter(d=>{const m=mk(d.tanggal);return m>=from&&m<=to&&(!ch||d.kanal===ch)&&(!cat||d.kategori===cat)});
+}
+function stats(rows){
+  const omzet=rows.reduce((s,d)=>s+d.qty*d.harga,0),qty=rows.reduce((s,d)=>s+d.qty,0);
+  return {omzet,trx:rows.length,qty,avg:rows.length?omzet/rows.length:0};
+}
+function delta(el,now,prev){
+  if(!prev){el.textContent="Tidak ada data periode sebelumnya";el.className="flat";return}
+  const p=(now-prev)/prev*100;
+  el.textContent=(p>=0?"Naik ":"Turun ")+Math.abs(p).toFixed(1).replace(".",",")+"% dari periode sebelumnya";
+  el.className=p>0.5?"up":p<-0.5?"down":"flat";
+}
+
+function render(){
+  let from=+$("fFrom").value,to=+$("fTo").value;if(from>to)[from,to]=[to,from];
+  const rows=filtered(from,to),len=to-from+1,prev=filtered(from-len,from-1);
+  const s=stats(rows),p=stats(prev);
+  $("kOmzet").textContent=rp(s.omzet);$("kTrx").textContent=num(s.trx);$("kQty").textContent=num(s.qty);$("kAvg").textContent=rp(s.avg);
+  delta($("dOmzet"),s.omzet,p.omzet);delta($("dTrx"),s.trx,p.trx);delta($("dQty"),s.qty,p.qty);delta($("dAvg"),s.avg,p.avg);
+
+  const months=[];for(let m=from;m<=to;m++)months.push(m);
+  const byMonth=months.map(m=>rows.filter(d=>mk(d.tanggal)===m).reduce((s,d)=>s+d.qty*d.harga,0));
+  const group=(k)=>{const o={};rows.forEach(d=>o[d[k]]=(o[d[k]]||0)+d.qty*d.harga);return Object.entries(o).sort((a,b)=>b[1]-a[1])};
+  const byCh=group("kanal"),byProd=group("produk").slice(0,6);
+
+  const money={callbacks:{label:c=>rp(c.parsed.y??c.parsed.x)}};
+  const tick=v=>v>=1e6?(v/1e6).toLocaleString("id-ID")+" jt":v>=1e3?(v/1e3)+" rb":v;
+  draw("cTrend",{type:"line",data:{labels:months.map(label),datasets:[{data:byMonth,borderColor:"#2F5BDA",backgroundColor:"rgba(47,91,218,.10)",fill:true,tension:.3,pointRadius:4}]},
+    options:{plugins:{legend:{display:false},tooltip:money},scales:{y:{beginAtZero:true,ticks:{callback:tick}},x:{grid:{display:false}}}}});
+  draw("cChannel",{type:"bar",data:{labels:byCh.map(x=>x[0]),datasets:[{data:byCh.map(x=>x[1]),backgroundColor:["#2F5BDA","#6F8FE6","#B3C3F2","#D5DEF8"],borderRadius:6}]},
+    options:{indexAxis:"y",plugins:{legend:{display:false},tooltip:money},scales:{x:{beginAtZero:true,ticks:{callback:tick}},y:{grid:{display:false}}}}});
+  draw("cTop",{type:"bar",data:{labels:byProd.map(x=>x[0]),datasets:[{data:byProd.map(x=>x[1]),backgroundColor:"#2F5BDA",borderRadius:6}]},
+    options:{indexAxis:"y",plugins:{legend:{display:false},tooltip:money},scales:{x:{beginAtZero:true,ticks:{callback:tick}},y:{grid:{display:false},ticks:{autoSkip:false}}}}});
+
+  const q=$("fSearch").value.trim().toLowerCase();
+  const list=rows.filter(d=>!q||d.produk.toLowerCase().includes(q)).sort((a,b)=>b.tanggal-a.tanggal).slice(0,200);
+  $("tBody").innerHTML=list.length?list.map(d=>`<tr><td>${d.tanggal.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"})}</td><td>${esc(d.produk)}</td><td>${esc(d.kanal)}</td><td class="n">${d.qty}</td><td class="n">${rp(d.qty*d.harga)}</td></tr>`).join("")
+    :`<tr><td colspan="5" style="color:var(--soft);padding:20px 8px">Tidak ada transaksi untuk filter ini. Ubah rentang bulan atau kanal.</td></tr>`;
+  window._rows=rows;
+}
+function draw(id,cfg){
+  if(typeof Chart==="undefined")return;
+  cfg.options={...cfg.options,maintainAspectRatio:false,animation:{duration:window.matchMedia("(prefers-reduced-motion: reduce)").matches?0:400}};
+  if(charts[id]){charts[id].data=cfg.data;charts[id].options=cfg.options;charts[id].update();return}
+  charts[id]=new Chart($(id),cfg);
+}
+if(typeof Chart!=="undefined"){Chart.defaults.font.family='"IBM Plex Sans",sans-serif';Chart.defaults.color="#5B6676"}
+
+["fFrom","fTo","fChannel","fCat"].forEach(id=>$(id).addEventListener("change",render));
+$("fSearch").addEventListener("input",render);
+$("btnExport").addEventListener("click",()=>{
+  const lines=["tanggal,produk,kategori,kanal,qty,harga,total"].concat((window._rows||[]).map(d=>[d.tanggal.toISOString().slice(0,10),d.produk,d.kategori,d.kanal,d.qty,d.harga,d.qty*d.harga].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"}));a.download="rekap-penjualan.csv";a.click();
+});
+
+const dlg=$("dlg");
+$("btnSheet").addEventListener("click",()=>{$("sheetMsg").textContent="";dlg.showModal()});
+$("btnCancel").addEventListener("click",()=>dlg.close());
+$("btnReset").addEventListener("click",()=>{data=sample();$("srcLabel").innerHTML="Sumber data: <b>contoh bawaan</b>";setupFilters();render();dlg.close()});
+$("btnLoad").addEventListener("click",async()=>{
+  const url=$("sheetUrl").value.trim(),msg=$("sheetMsg");
+  if(!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(url)){msg.className="msg err";msg.textContent="Masukkan link Google Sheets yang sudah dipublikasikan dalam format CSV.";return}
+  msg.className="msg";msg.textContent="Memuat data…";
+  try{
+    const res=await fetch(url);if(!res.ok)throw new Error("Spreadsheet tidak bisa dibuka (kode "+res.status+"). Pastikan sudah dipublikasikan ke web.");
+    data=fromRows(parseCSV(await res.text()));
+    $("srcLabel").innerHTML="Sumber data: <b>Google Sheets</b> ("+num(data.length)+" baris)";
+    setupFilters();render();dlg.close();
+  }catch(e){msg.className="msg err";msg.textContent=e.message}
+});
+
+setupFilters();render();
+</script>
+</body>
+</html>

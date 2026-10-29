@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoring Kualitas Air Tambak (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#E8F1F2;--panel:#FFFFFF;--ink:#0D2B36;--soft:#4D6A73;--line:#CFE0E3;--water:#1B7F95;
+  --ok:#1E8A5A;--okbg:#E6F5EC;--warn:#A86B00;--warnbg:#FFF4D9;--bad:#B8322C;--badbg:#FDE8E6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 "Archivo",system-ui,sans-serif}
+:focus-visible{outline:3px solid var(--water);outline-offset:2px;border-radius:4px}
+.demo{background:var(--ink);color:#D6E6EA;font-size:13.5px;text-align:center;padding:7px 16px}
+.demo a{color:#fff;font-weight:600}
+.wrap{max-width:1220px;margin:0 auto;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:26px;font-weight:800;letter-spacing:-.01em}
+.live{display:flex;align-items:center;gap:8px;color:var(--soft);font-size:14px}
+.pulse{width:10px;height:10px;border-radius:50%;background:var(--ok)}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:p 1.6s infinite}@keyframes p{50%{opacity:.25}}}
+.ponds{display:flex;gap:8px;flex-wrap:wrap}
+.ponds button{font:600 14px "Archivo",sans-serif;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.ponds button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+.sensors{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.sensor{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.sensor[aria-pressed="true"]{border:2px solid var(--water);padding:15px}
+.sensor .name{color:var(--soft);font-size:13.5px;font-weight:500}
+.sensor .val{font-size:36px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.sensor .val small{font-size:15px;font-weight:600;color:var(--soft);margin-left:4px}
+.sensor .range{font-size:12.5px;color:var(--soft)}
+.badge{align-self:flex-start;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px}
+.s-ok{background:var(--okbg);color:var(--ok)}.s-warn{background:var(--warnbg);color:var(--warn)}.s-bad{background:var(--badbg);color:var(--bad)}
+.sensor.warn{background:var(--warnbg)}.sensor.bad{background:var(--badbg)}
+
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel h2{font-size:15.5px;font-weight:700;margin-bottom:10px}
+.chart-box{position:relative;height:300px}
+.side{display:flex;flex-direction:column;gap:14px}
+.aer{display:flex;justify-content:space-between;align-items:center}
+.aer strong{font-size:20px}
+.aer .on{color:var(--ok)}.aer .off{color:var(--soft)}
+.ctrl{display:flex;flex-direction:column;gap:8px}
+.ctrl button{font:600 14px "Archivo",sans-serif;padding:11px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;text-align:left}
+.ctrl button:hover{border-color:var(--water);color:var(--water)}
+.ctrl p{font-size:13px;color:var(--soft)}
+.log{list-style:none;max-height:220px;overflow:auto;font-size:13.5px}
+.log li{padding:8px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:68px 1fr;gap:8px}
+.log time{color:var(--soft);font-variant-numeric:tabular-nums}
+.log .bad{color:var(--bad);font-weight:600}.log .warn{color:var(--warn);font-weight:600}.log .ok{color:var(--ok)}
+.foot{margin-top:16px;color:var(--soft);font-size:13px;max-width:80ch}
+
+@media (max-width:980px){.sensors{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+@media (max-width:420px){.sensor .val{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="demo">Demo portofolio dengan data sensor simulasi. <a href="../">Kembali ke portofolio</a></div>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Kualitas air tambak</h1>
+      <div class="live"><span class="pulse" aria-hidden="true"></span><span id="liveTxt">Terhubung, data diperbarui tiap 3 detik</span></div>
+    </div>
+    <div class="ponds" role="group" aria-label="Pilih kolam" id="ponds"></div>
+  </header>
+
+  <div class="sensors" id="sensors"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2 id="chartTitle">Riwayat</h2>
+      <div class="chart-box"><canvas id="chart" aria-label="Grafik riwayat sensor"></canvas></div>
+    </div>
+    <div class="side">
+      <div class="panel aer">
+        <div><h2 style="margin:0">Aerator kolam</h2><span class="range" id="aerNote" style="color:var(--soft);font-size:13px">Otomatis menyala jika oksigen di bawah 4 mg/L</span></div>
+        <strong id="aerState" class="off">Mati</strong>
+      </div>
+      <div class="panel ctrl">
+        <h2 style="margin:0">Coba skenario</h2>
+        <p>Lihat bagaimana dashboard bereaksi ketika kondisi kolam berubah.</p>
+        <button id="scDO">Simulasikan oksigen turun (malam hari)</button>
+        <button id="scSal">Simulasikan salinitas naik (kemarau)</button>
+        <button id="scReset">Kembalikan ke normal</button>
+      </div>
+      <div class="panel"><h2>Catatan kejadian</h2><ul class="log" id="log"></ul></div>
+    </div>
+  </div>
+  <p class="foot">Versi lapangan: node ESP32 di tiap kolam membaca sensor DO, pH, suhu, dan salinitas, mengirim lewat LoRa ke gateway, lalu data masuk ke server dan tampil di halaman ini. Batas aman bisa diatur per jenis budidaya.</p>
+</div>
+
+<script>
+const SENSORS=[
+  {id:"do",name:"Oksigen terlarut (DO)",unit:"mg/L",dec:1,min:4,max:null,warnLow:4.5,bad:v=>v<4,warn:v=>v<4.5,range:"Aman ≥ 4,0 mg/L",yMin:0,yMax:10},
+  {id:"ph",name:"pH",unit:"",dec:2,range:"Aman 7,5 – 8,5",bad:v=>v<7.2||v>8.8,warn:v=>v<7.5||v>8.5,lo:7.5,hi:8.5,yMin:6.5,yMax:9.5},
+  {id:"temp",name:"Suhu air",unit:"°C",dec:1,range:"Aman 28 – 32 °C",bad:v=>v<26||v>34,warn:v=>v<28||v>32,lo:28,hi:32,yMin:24,yMax:36},
+  {id:"sal",name:"Salinitas",unit:"ppt",dec:1,range:"Aman 10 – 25 ppt",bad:v=>v<5||v>30,warn:v=>v<10||v>25,lo:10,hi:25,yMin:0,yMax:40}
+];
+const PONDS=["Kolam A1","Kolam A2","Kolam B1"];
+const base={"Kolam A1":{do:6.2,ph:7.9,temp:29.5,sal:18},"Kolam A2":{do:5.6,ph:8.1,temp:30.1,sal:20},"Kolam B1":{do:6.8,ph:7.8,temp:29.0,sal:16}};
+const N=40;
+let pond=PONDS[0],sel="do",tick=0,scenario=null,aerOn={};
+const hist={},cur={},lastState={};
+PONDS.forEach(p=>{hist[p]={};cur[p]={...base[p]};aerOn[p]=false;SENSORS.forEach(s=>{hist[p][s.id]=[];lastState[p+s.id]="ok"})});
+
+const $=id=>document.getElementById(id);
+const fmt=(v,d)=>v.toFixed(d).replace(".",",");
+const now=()=>new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+function state(s,v){return s.bad(v)?"bad":s.warn(v)?"warn":"ok"}
+const LABEL={ok:"Aman",warn:"Waspada",bad:"Bahaya"};
+
+function step(p){
+  const c=cur[p],b=base[p],j=(a)=>(Math.random()-.5)*a;
+  // scenario drift on active pond
+  let tDO=b.do,tSal=b.sal;
+  if(scenario==="do"&&p===pond)tDO=2.6;
+  if(scenario==="sal"&&p===pond)tSal=29;
+  if(aerOn[p])tDO=Math.max(tDO,5.5);
+  c.do+=(tDO-c.do)*(scenario==="do"&&p===pond?.22:.12)+j(.15);
+  c.sal+=(tSal-c.sal)*(scenario==="sal"&&p===pond?.2:.1)+j(.2);
+  c.ph+=(b.ph-c.ph)*.1+j(.04);
+  c.temp+=(b.temp-c.temp)*.1+j(.15);
+  // automation: aerator
+  if(c.do<4&&!aerOn[p]){aerOn[p]=true;log(p,"warn",`Aerator ${p} dinyalakan otomatis (DO ${fmt(c.do,1)} mg/L)`)}
+  else if(c.do>6&&aerOn[p]&&scenario!=="do"){aerOn[p]=false;log(p,"ok",`Aerator ${p} dimatikan, oksigen kembali normal`)}
+  SENSORS.forEach(s=>{
+    const h=hist[p][s.id];h.push({t:now(),v:c[s.id]});if(h.length>N)h.shift();
+    const st=state(s,c[s.id]);
+    if(st!==lastState[p+s.id]){
+      if(st!=="ok")log(p,st,`${s.name} ${p}: ${LABEL[st].toLowerCase()} (${fmt(c[s.id],s.dec)}${s.unit?" "+s.unit:""})`);
+      else log(p,"ok",`${s.name} ${p} kembali aman`);
+      lastState[p+s.id]=st;
+    }
+  });
+}
+const logs=[];
+function log(p,st,text){logs.unshift({t:now(),st,text});if(logs.length>30)logs.pop();renderLog()}
+function renderLog(){$("log").innerHTML=logs.length?logs.map(l=>`<li><time>${l.t}</time><span class="${l.st}">${l.text}</span></li>`).join(""):`<li style="display:block;color:var(--soft)">Belum ada kejadian. Semua sensor dalam batas aman.</li>`}
+
+function renderPonds(){
+  $("ponds").innerHTML=PONDS.map(p=>{
+    const worst=SENSORS.map(s=>state(s,cur[p][s.id])).sort((a,b)=>"okwarnbad".indexOf(b)-"okwarnbad".indexOf(a))[0];
+    return `<button aria-pressed="${p===pond}" data-p="${p}">${p}${worst!=="ok"?" · "+LABEL[worst]:""}</button>`}).join("");
+}
+function renderSensors(){
+  $("sensors").innerHTML=SENSORS.map(s=>{
+    const v=cur[pond][s.id],st=state(s,v);
+    return `<button class="sensor ${st==="ok"?"":st}" aria-pressed="${s.id===sel}" data-s="${s.id}">
+      <span class="name">${s.name}</span>
+      <span class="val">${fmt(v,s.dec)}<small>${s.unit}</small></span>
+      <span class="badge s-${st}">${LABEL[st]}</span>
+      <span class="range">${s.range}</span></button>`}).join("");
+  const on=aerOn[pond];$("aerState").textContent=on?"Menyala":"Mati";$("aerState").className=on?"on":"off";
+}
+let chart;
+function renderChart(){
+  const s=SENSORS.find(x=>x.id===sel),h=hist[pond][sel];
+  $("chartTitle").textContent=`${s.name}, ${pond}`;
+  const lo=s.id==="do"?4:s.lo,hi=s.id==="do"?null:s.hi;
+  const ds=[{label:s.name,data:h.map(x=>+x.v.toFixed(s.dec)),borderColor:"#1B7F95",backgroundColor:"rgba(27,127,149,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2.5},
+    {label:"Batas bawah",data:h.map(()=>lo),borderColor:"#A86B00",borderDash:[6,5],pointRadius:0,borderWidth:1.5,fill:false}];
+  if(hi!=null)ds.push({label:"Batas atas",data:h.map(()=>hi),borderColor:"#A86B00",borderDash:[6,5],pointRadius:0,borderWidth:1.5,fill:false});
+  if(typeof Chart==="undefined")return;
+  const cfg={labels:h.map(x=>x.t),datasets:ds};
+  if(chart){chart.data=cfg;chart.options.scales.y.min=s.yMin;chart.options.scales.y.max=s.yMax;chart.update("none");return}
+  Chart.defaults.font.family='"Archivo",sans-serif';Chart.defaults.color="#4D6A73";
+  chart=new Chart($("chart"),{type:"line",data:cfg,options:{maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{boxWidth:14,usePointStyle:false}}},
+    scales:{y:{min:s.yMin,max:s.yMax},x:{ticks:{maxTicksLimit:8},grid:{display:false}}}}});
+}
+function renderAll(){renderPonds();renderSensors();renderChart()}
+
+$("ponds").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;pond=b.dataset.p;renderAll()});
+$("sensors").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;sel=b.dataset.s;renderSensors();renderChart()});
+$("scDO").addEventListener("click",()=>{scenario="do";sel="do";log(pond,"warn",`Skenario: oksigen ${pond} mulai turun`);renderAll()});
+$("scSal").addEventListener("click",()=>{scenario="sal";sel="sal";log(pond,"warn",`Skenario: salinitas ${pond} mulai naik`);renderAll()});
+$("scReset").addEventListener("click",()=>{scenario=null;log(pond,"ok","Skenario dihentikan, kondisi kembali normal");renderAll()});
+
+// warm up history
+for(let i=0;i<N;i++)PONDS.forEach(step);
+logs.length=0;renderLog();renderAll();
+setInterval(()=>{PONDS.forEach(step);tick++;renderAll()},3000);
+</script>
+</body>
+</html>

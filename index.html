@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galuh Sutisna — Web, Otomasi & IoT</title>
+<meta name="description" content="Portofolio Galuh Sutisna: website, dashboard data, otomasi Google Sheets, bot, dan monitoring IoT.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1EE; --ink:#14211C; --soft:#4A5A53; --teal:#0E6F62; --amber:#E3A21A; --line:#C9D3CE; --panel:#F7F9F7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.6 "Instrument Sans",system-ui,sans-serif}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+.mark{font:700 18px/1 "Bricolage Grotesque",sans-serif;text-decoration:none}
+.top nav a{margin-left:22px;text-decoration:none;color:var(--soft);font-weight:500}
+.top nav a:hover{color:var(--teal)}
+
+.hero{padding:56px 0 24px}
+.hero h1{font:800 clamp(48px,9vw,112px)/.92 "Bricolage Grotesque",sans-serif;letter-spacing:-.035em;max-width:11ch}
+.hero p.lead{margin-top:28px;font-size:clamp(18px,2.2vw,22px);max-width:40ch;color:var(--soft)}
+.trace{display:block;width:100%;height:110px;margin-top:40px}
+.trace path{fill:none;stroke:var(--teal);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.trace .grid line{stroke:var(--line);stroke-width:1}
+.trace .dot{fill:var(--amber)}
+@media (prefers-reduced-motion:no-preference){
+  .trace path{stroke-dasharray:2400;stroke-dashoffset:2400;animation:draw 2.4s .3s ease-out forwards}
+  .trace .dot{opacity:0;animation:pop .3s 2.6s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes pop{to{opacity:1}}
+}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:32px}
+.btn{display:inline-block;padding:13px 22px;border-radius:999px;font-weight:600;text-decoration:none;border:2px solid var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.primary:hover{background:var(--teal);border-color:var(--teal)}
+.btn.ghost:hover{border-color:var(--teal);color:var(--teal)}
+
+section{padding:72px 0}
+h2{font:700 clamp(30px,4vw,44px)/1.05 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin-bottom:12px}
+.intro{color:var(--soft);max-width:56ch;margin-bottom:40px}
+
+.work{display:grid;gap:28px}
+.item{display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center;padding:28px;background:var(--panel);border:1px solid var(--line);border-radius:22px}
+.item:nth-child(even) .shot{order:-1}
+.item h3{font:700 28px/1.1 "Bricolage Grotesque",sans-serif;margin-bottom:10px}
+.item p{color:var(--soft);margin-bottom:14px;max-width:46ch}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 22px}
+.tags span{font-size:14px;padding:4px 12px;border-radius:999px;background:#E1E9E5;color:var(--ink)}
+.shot{aspect-ratio:16/10;border-radius:14px;overflow:hidden;border:1px solid var(--line);position:relative}
+
+/* mini previews drawn in CSS */
+.s-umkm{background:#F6D6DE;padding:22px}
+.s-umkm .h{width:62%;height:22px;background:#1E3B2A;border-radius:4px}
+.s-umkm .h2{width:40%;height:10px;background:#1E3B2A;opacity:.5;border-radius:4px;margin-top:10px}
+.s-umkm .m{position:absolute;border-radius:50%}
+.s-umkm .m1{width:34%;aspect-ratio:1;right:10%;bottom:14%;background:#FFFFFF;box-shadow:inset -10px -12px 0 #E9E2DA}
+.s-umkm .m2{width:22%;aspect-ratio:1;right:36%;bottom:8%;background:#9CCB8E;box-shadow:inset -8px -8px 0 #7FB271}
+.s-umkm .b{position:absolute;left:22px;bottom:22px;width:30%;height:26px;border-radius:999px;background:#4E9A5B}
+
+.s-dash{background:#F3F5F8;padding:16px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:38px 1fr;gap:10px}
+.s-dash i{background:#fff;border-radius:6px;border:1px solid #E1E5EC}
+.s-dash .chart{grid-column:1/3;background:#fff;border-radius:6px;border:1px solid #E1E5EC;position:relative;overflow:hidden}
+.s-dash .chart svg{position:absolute;inset:0;width:100%;height:100%}
+.s-dash .bars{background:#fff;border-radius:6px;border:1px solid #E1E5EC;display:flex;align-items:flex-end;gap:6px;padding:10px}
+.s-dash .bars b{flex:1;background:#2F5BDA;border-radius:3px 3px 0 0}
+
+.s-iot{background:#E8F1F2;padding:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.s-iot div{background:#fff;border-radius:8px;border:1px solid #CFE0E3;padding:10px;display:flex;flex-direction:column;justify-content:space-between}
+.s-iot small{font-size:11px;color:#4D6A73}
+.s-iot strong{font:700 22px/1 "Bricolage Grotesque",sans-serif;color:#0D2B36}
+.s-iot .warn{border-color:#E3A21A;background:#FFF6E0}
+
+.skills{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 28px;border-top:1px solid var(--line)}
+.skills div{padding:22px 22px 22px 0;border-bottom:1px solid var(--line)}
+.skills h3{font:700 19px/1.2 "Bricolage Grotesque",sans-serif;margin-bottom:6px}
+.skills p{color:var(--soft);font-size:15.5px}
+
+.contact{background:var(--ink);color:var(--bg);border-radius:28px;padding:56px 40px;margin:24px 0 64px}
+.contact h2{color:var(--bg)}
+.contact p{color:#B9C7C0;max-width:50ch;margin-bottom:28px}
+.contact .btn{border-color:var(--bg);color:var(--bg)}
+.contact .btn.primary{background:var(--amber);border-color:var(--amber);color:var(--ink)}
+.contact .btn.primary:hover{background:var(--bg);border-color:var(--bg)}
+footer{padding:0 0 40px;color:var(--soft);font-size:14px}
+
+@media (max-width:760px){
+  .top nav{display:none}
+  .item{grid-template-columns:1fr;padding:20px}
+  .item:nth-child(even) .shot{order:0}
+  .contact{padding:40px 24px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="mark" href="#">galuh.sutisna</a>
+    <nav><a href="#karya">Karya</a><a href="#layanan">Layanan</a><a href="#kontak">Kontak</a></nav>
+  </header>
+
+  <main>
+    <section class="hero" style="padding-top:40px">
+      <h1>Galuh Sutisna</h1>
+      <p class="lead">Saya membuat website, dashboard data, otomasi Google Sheets, dan sistem monitoring IoT. Latar belakang teknik elektro, jadi nyaman dari kode web sampai sensor di lapangan.</p>
+      <svg class="trace" viewBox="0 0 1000 110" preserveAspectRatio="none" aria-hidden="true">
+        <g class="grid"><line x1="0" y1="55" x2="1000" y2="55"/></g>
+        <path d="M0 55 L120 55 L140 55 L155 20 L170 90 L185 55 L330 55 C360 55 370 30 400 30 C430 30 440 80 470 80 C500 80 510 55 540 55 L640 55 L650 25 L700 25 L700 85 L750 85 L750 25 L800 25 L800 55 L1000 55"/>
+        <circle class="dot" cx="1000" cy="55" r="6"/>
+      </svg>
+      <div class="cta-row">
+        <a class="btn primary" href="#karya">Lihat demo</a>
+        <a class="btn ghost" href="#kontak">Hubungi saya</a>
+      </div>
+    </section>
+
+    <section id="karya">
+      <h2>Demo yang bisa dicoba</h2>
+      <p class="intro">Tiga contoh yang mewakili pekerjaan yang paling sering saya tangani. Semua bisa dibuka dan dipakai langsung. Nama usaha dan datanya fiktif.</p>
+
+      <div class="work">
+        <article class="item">
+          <div>
+            <h3>Landing page UMKM</h3>
+            <p>Website satu halaman untuk toko mochi fiktif: menu dan harga, jam buka, lokasi, dan tombol pesan langsung ke WhatsApp dengan pesanan yang sudah terisi.</p>
+            <div class="tags"><span>HTML & CSS</span><span>JavaScript</span><span>Responsif di HP</span><span>Order via WhatsApp</span></div>
+            <a class="btn primary" href="umkm/">Buka demo</a>
+          </div>
+          <div class="shot s-umkm" aria-hidden="true"><div class="h"></div><div class="h2"></div><span class="m m1"></span><span class="m m2"></span><span class="b"></span></div>
+        </article>
+
+        <article class="item">
+          <div>
+            <h3>Dashboard penjualan dari Google Sheets</h3>
+            <p>Rekap penjualan otomatis: omzet, produk terlaris, tren bulanan, dan filter per kategori. Bisa disambungkan ke spreadsheet milik klien, jadi cukup isi data di Sheets dan dashboard ikut berubah.</p>
+            <div class="tags"><span>JavaScript</span><span>Chart.js</span><span>Google Sheets</span><span>Filter & ekspor CSV</span></div>
+            <a class="btn primary" href="dashboard/">Buka demo</a>
+          </div>
+          <div class="shot s-dash" aria-hidden="true">
+            <i></i><i></i><i></i>
+            <div class="chart"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline points="0,80 30,70 60,74 90,52 120,58 150,34 200,22" fill="none" stroke="#2F5BDA" stroke-width="3"/></svg></div>
+            <div class="bars"><b style="height:80%"></b><b style="height:55%"></b><b style="height:40%"></b><b style="height:25%"></b></div>
+          </div>
+        </article>
+
+        <article class="item">
+          <div>
+            <h3>Monitoring kualitas air tambak (IoT)</h3>
+            <p>Dashboard sensor kolam: oksigen terlarut, pH, suhu, dan salinitas yang diperbarui terus, lengkap dengan peringatan saat nilai keluar batas aman. Demo ini memakai data simulasi; versi sungguhan menerima data dari ESP32.</p>
+            <div class="tags"><span>ESP32 / LoRa</span><span>Dashboard realtime</span><span>Notifikasi batas</span><span>Chart.js</span></div>
+            <a class="btn primary" href="iot/">Buka demo</a>
+          </div>
+          <div class="shot s-iot" aria-hidden="true">
+            <div><small>Oksigen (DO)</small><strong>5,8</strong></div>
+            <div><small>pH</small><strong>7,9</strong></div>
+            <div><small>Suhu</small><strong>29,4°</strong></div>
+            <div class="warn"><small>Salinitas</small><strong>26 ppt</strong></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="layanan">
+      <h2>Yang bisa saya bantu</h2>
+      <p class="intro">Proyek kecil sampai menengah, dikerjakan rapi dan dilaporkan progresnya.</p>
+      <div class="skills">
+        <div><h3>Website & landing page</h3><p>Company profile, toko online sederhana, halaman promosi. Next.js, React, atau HTML statis.</p></div>
+        <div><h3>Otomasi Google Sheets</h3><p>Apps Script untuk rekap otomatis, form ke sheet, kirim email atau notifikasi, dan dashboard.</p></div>
+        <div><h3>Bot & script Python</h3><p>Bot Telegram, pengolahan data, dan otomasi pekerjaan berulang.</p></div>
+        <div><h3>IoT & firmware</h3><p>ESP32, Arduino, LoRa, sensor RS485/Modbus, sampai tampil di dashboard web.</p></div>
+        <div><h3>Perbaikan bug</h3><p>Web JavaScript/TypeScript atau Python yang error atau perlu fitur tambahan.</p></div>
+      </div>
+    </section>
+
+    <section id="kontak" style="padding:0">
+      <div class="contact">
+        <h2>Punya proyek?</h2>
+        <p>Ceritakan kebutuhannya. Saya balas dengan rencana pengerjaan, estimasi waktu, dan biaya sebelum mulai.</p>
+        <div class="cta-row" style="margin-top:0">
+          <a class="btn primary" href="mailto:galuh250321@gmail.com?subject=Tanya%20proyek">Kirim email</a>
+          <a class="btn" href="https://github.com/galuh250321-oss" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>© 2026 Galuh Sutisna · Tangerang, Indonesia</footer>
+</div>
+</body>
+</html>
